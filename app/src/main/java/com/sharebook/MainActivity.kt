@@ -1,4 +1,4 @@
-package com.share
+package com.sharebook
 
 import android.os.Bundle
 import android.text.Editable
@@ -9,13 +9,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.share.data.model.Book
-import com.share.data.model.SearchType
-import com.share.databinding.ActivityMainBinding
-import com.share.ui.adapter.BookAdapter
-import com.share.util.AliyunShareParser
-import com.share.util.CloudTransferHelper
-import com.share.util.FileDownloader
+import com.sharebook.data.model.Book
+import com.sharebook.data.model.SearchType
+import com.sharebook.databinding.ActivityMainBinding
+import com.sharebook.ui.adapter.BookAdapter
+import com.sharebook.util.AliyunShareParser
+import com.sharebook.util.CloudTransferHelper
+import com.sharebook.util.FileDownloader
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cloudTransferHelper: CloudTransferHelper
 
     private val bookList = mutableListOf<Book>()
+    private val sampleShareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,7 +68,12 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 if (!s.isNullOrEmpty()) {
-                    performSearch(s.toString())
+                    val input = s.toString()
+                    if (isShareUrl(input)) {
+                        parseShareUrl(input)
+                    } else {
+                        performSearch(input)
+                    }
                 } else {
                     showSampleBooks()
                 }
@@ -75,13 +81,15 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun isShareUrl(input: String): Boolean {
+        return input.contains("alipan.com") || input.contains("aliyundrive.com")
+    }
+
     private fun setupSearchTypeChips() {
         binding.searchTypeGroup.setOnCheckedStateChangeListener { _, _ ->
             val currentText = binding.searchInput.text.toString()
-            if (!currentText.isEmpty()) {
+            if (!currentText.isEmpty() && !isShareUrl(currentText)) {
                 performSearch(currentText)
-            } else {
-                showSampleBooks()
             }
         }
     }
@@ -97,6 +105,24 @@ class MainActivity : AppCompatActivity() {
     private fun showSampleBooks() {
         val books = aliyunShareParser.getSampleBooks()
         updateBookList(books)
+    }
+
+    private fun parseShareUrl(url: String) {
+        showLoading(true)
+
+        lifecycleScope.launch {
+            val result = aliyunShareParser.parseShareUrl(url)
+            showLoading(false)
+            
+            result.onSuccess { book ->
+                updateBookList(listOf(book))
+                Toast.makeText(this@MainActivity, "解析成功！", Toast.LENGTH_SHORT).show()
+            }.onFailure { error ->
+                Toast.makeText(this@MainActivity, "解析失败: ${error.message}", Toast.LENGTH_SHORT).show()
+                // 解析失败时显示示例数据
+                showSampleBooks()
+            }
+        }
     }
 
     private fun performSearch(keyword: String) {

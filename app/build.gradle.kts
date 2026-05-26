@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.share"
+    namespace = "com.sharebook"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.share"
+        applicationId = "com.sharebook"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

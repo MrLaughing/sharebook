@@ -1,4 +1,4 @@
-package com.share.data.model
+package com.sharebook.data.model
 
 enum class SearchType {
     BOOK_NAME,

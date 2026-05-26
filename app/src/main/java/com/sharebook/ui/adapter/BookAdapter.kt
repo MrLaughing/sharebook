@@ -1,13 +1,13 @@
-package com.share.ui.adapter
+package com.sharebook.ui.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.share.R
-import com.share.data.model.Book
-import com.share.databinding.ItemBookBinding
+import com.sharebook.R
+import com.sharebook.data.model.Book
+import com.sharebook.databinding.ItemBookBinding
 
 class BookAdapter(
     private val onDownloadClick: (Book) -> Unit,

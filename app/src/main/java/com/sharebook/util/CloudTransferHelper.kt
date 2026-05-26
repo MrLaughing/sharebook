@@ -1,4 +1,4 @@
-package com.share.util
+package com.sharebook.util
 
 import android.content.Context
 import android.content.Intent
@@ -10,8 +10,7 @@ class CloudTransferHelper(private val context: Context) {
 
     suspend fun transferToAliyun(shareUrl: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val transferUrl = "https://www.aliyundrive.com/u/transfer"
-            Result.success(transferUrl)
+            Result.success(shareUrl)
         } catch (e: Exception) {
             Result.failure(e)
         }

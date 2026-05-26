@@ -1,4 +1,4 @@
-package com.share.data.model
+package com.sharebook.data.model
 
 data class Book(
     val title: String,
