@@ -4,17 +4,121 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     tools:context=".MainActivity">
 
     <TextView
+        android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="ShareBook - 搜书应用"
-        android:textSize="24sp"
+        android:text="Share"
+        android:textSize="32sp"
         android:textStyle="bold"
+        android:textColor="@color/black"
+        android:layout_marginTop="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/searchInput"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/search_input_bg"
+        android:hint="输入书名、作者或ISBN"
+        android:inputType="text"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textColor="@color/black"
+        android:textColorHint="@color/gray"
+        android:textSize="16sp"
+        android:importantForAutofill="no"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/searchTypeGroup"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        app:singleSelection="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchInput">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipBookName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="书名"
+            android:checked="true"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            app:chipBackgroundColor="@color/chip_bg_selector"
+            app:chipStrokeColor="@color/black"
+            app:chipStrokeWidth="1dp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipAuthor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="作者"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            app:chipBackgroundColor="@color/chip_bg_selector"
+            app:chipStrokeColor="@color/black"
+            app:chipStrokeWidth="1dp" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipIsbn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ISBN"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            app:chipBackgroundColor="@color/chip_bg_selector"
+            app:chipStrokeColor="@color/black"
+            app:chipStrokeWidth="1dp" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/resultsList"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchTypeGroup" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:indeterminateTint="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/emptyState"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="输入关键词搜索图书"
+        android:textSize="16sp"
+        android:textColor="@color/gray"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchTypeGroup" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

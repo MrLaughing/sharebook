@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ShareBook"
+rootProject.name = "Share"
 include(":app")

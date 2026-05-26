@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.sharebook"
+    namespace = "com.share"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.sharebook"
+        applicationId = "com.share"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -45,6 +45,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
