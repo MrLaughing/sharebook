@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
-import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -38,6 +37,9 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupSearchInput()
         setupSearchTypeChips()
+        
+        // 初始显示示例数据
+        showSampleBooks()
     }
 
     private fun initializeComponents() {
@@ -64,8 +66,10 @@ class MainActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                if (s?.length ?: 0 >= 3) {
+                if (!s.isNullOrEmpty()) {
                     performSearch(s.toString())
+                } else {
+                    showSampleBooks()
                 }
             }
         })
@@ -74,8 +78,10 @@ class MainActivity : AppCompatActivity() {
     private fun setupSearchTypeChips() {
         binding.searchTypeGroup.setOnCheckedStateChangeListener { _, _ ->
             val currentText = binding.searchInput.text.toString()
-            if (currentText.length >= 3) {
+            if (!currentText.isEmpty()) {
                 performSearch(currentText)
+            } else {
+                showSampleBooks()
             }
         }
     }
@@ -88,26 +94,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSampleBooks() {
+        val books = aliyunShareParser.getSampleBooks()
+        updateBookList(books)
+    }
+
     private fun performSearch(keyword: String) {
         showLoading(true)
 
         lifecycleScope.launch {
-            val books = searchBooks(keyword, getCurrentSearchType())
-            updateBookList(books)
+            val searchType = getCurrentSearchType()
+            val filteredBooks = filterBooksByType(aliyunShareParser.searchBooksByKeyword(keyword), searchType, keyword)
+            updateBookList(filteredBooks)
             showLoading(false)
         }
     }
 
-    private suspend fun searchBooks(keyword: String, type: SearchType): List<Book> {
-        return try {
-            val shareUrl = "https://www.aliyundrive.com/s/${keyword.take(8)}"
-            val result = aliyunShareParser.parseShareUrl(shareUrl)
-
-            result.getOrNull()?.let { book ->
-                listOf(book)
-            } ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
+    private fun filterBooksByType(books: List<Book>, type: SearchType, keyword: String): List<Book> {
+        val lowerKeyword = keyword.lowercase()
+        return books.filter { book ->
+            when (type) {
+                SearchType.BOOK_NAME -> book.title.lowercase().contains(lowerKeyword)
+                SearchType.AUTHOR -> book.author.lowercase().contains(lowerKeyword)
+                SearchType.ISBN -> book.isbn.contains(keyword)
+            }
         }
     }
 

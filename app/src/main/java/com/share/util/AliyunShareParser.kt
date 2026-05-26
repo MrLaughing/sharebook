@@ -8,6 +8,30 @@ import java.net.URL
 
 class AliyunShareParser {
 
+    private val sampleBooks = listOf(
+        Book(
+            title = "人类简史",
+            author = "尤瓦尔·赫拉利",
+            isbn = "978-7-5086-4735-7",
+            source = "阿里云分享",
+            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+        ),
+        Book(
+            title = "未来简史",
+            author = "尤瓦尔·赫拉利",
+            isbn = "978-7-5086-4896-5",
+            source = "阿里云分享",
+            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+        ),
+        Book(
+            title = "今日简史",
+            author = "尤瓦尔·赫拉利",
+            isbn = "978-7-5217-1000-6",
+            source = "阿里云分享",
+            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+        )
+    )
+
     suspend fun parseShareUrl(shareUrl: String): Result<Book> = withContext(Dispatchers.IO) {
         try {
             val url = URL(shareUrl)
@@ -46,6 +70,17 @@ class AliyunShareParser {
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    fun getSampleBooks(): List<Book> = sampleBooks
+
+    fun searchBooksByKeyword(keyword: String): List<Book> {
+        val lowerKeyword = keyword.lowercase()
+        return sampleBooks.filter { book ->
+            book.title.lowercase().contains(lowerKeyword) ||
+            book.author.lowercase().contains(lowerKeyword) ||
+            book.isbn.contains(keyword)
         }
     }
 
