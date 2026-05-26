@@ -8,26 +8,28 @@ import kotlinx.coroutines.withContext
 
 class CloudTransferHelper(private val context: Context) {
 
-    suspend fun transferToAliyun(shareUrl: String): Result<String> = withContext(Dispatchers.IO) {
+    fun openAliyunPan(shareUrl: String) {
         try {
-            Result.success(shareUrl)
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(shareUrl))
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(intent)
         } catch (e: Exception) {
-            Result.failure(e)
+            e.printStackTrace()
+            openWebPage(shareUrl)
         }
     }
 
-    suspend fun transferTo115(shareUrl: String): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val transferUrl = "https://115.com"
-            Result.success(transferUrl)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    fun openUrl(url: String) {
+    private fun openWebPage(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun showSaveOptions(shareUrl: String) {
+        openAliyunPan(shareUrl)
     }
 }

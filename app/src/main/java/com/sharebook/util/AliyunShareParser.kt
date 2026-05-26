@@ -3,105 +3,94 @@ package com.sharebook.util
 import com.sharebook.data.model.Book
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
 import java.net.URL
 
 class AliyunShareParser {
+
+    private val sampleShareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
 
     private val sampleBooks = listOf(
         Book(
             title = "人类简史",
             author = "尤瓦尔·赫拉利",
             isbn = "978-7-5086-4735-7",
-            source = "阿里云分享",
-            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+            format = "PDF",
+            source = "阿里云盘",
+            shareUrl = sampleShareUrl,
+            fileId = "file1",
+            size = 25 * 1024 * 1024
         ),
         Book(
             title = "未来简史",
             author = "尤瓦尔·赫拉利",
             isbn = "978-7-5086-4896-5",
-            source = "阿里云分享",
-            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+            format = "PDF",
+            source = "阿里云盘",
+            shareUrl = sampleShareUrl,
+            fileId = "file2",
+            size = 22 * 1024 * 1024
         ),
         Book(
             title = "今日简史",
             author = "尤瓦尔·赫拉利",
             isbn = "978-7-5217-1000-6",
-            source = "阿里云分享",
-            shareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+            format = "PDF",
+            source = "阿里云盘",
+            shareUrl = sampleShareUrl,
+            fileId = "file3",
+            size = 28 * 1024 * 1024
+        ),
+        Book(
+            title = "百年孤独",
+            author = "加西亚·马尔克斯",
+            isbn = "978-7-5442-5399-8",
+            format = "EPUB",
+            source = "阿里云盘",
+            shareUrl = sampleShareUrl,
+            fileId = "file4",
+            size = 3 * 1024 * 1024
+        ),
+        Book(
+            title = "活着",
+            author = "余华",
+            isbn = "978-7-5063-3021-6",
+            format = "PDF",
+            source = "阿里云盘",
+            shareUrl = sampleShareUrl,
+            fileId = "file5",
+            size = 8 * 1024 * 1024
         )
     )
 
-    suspend fun parseShareUrl(shareUrl: String): Result<Book> = withContext(Dispatchers.IO) {
-        try {
-            // 尝试真实解析，失败则返回默认数据
-            try {
-                val url = URL(shareUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val html = connection.inputStream.bufferedReader().readText()
-
-                    val title = extractPattern(html, "<title>(.*?)</title>")
-                        ?: extractPattern(html, "\"fileName\"\\s*:\\s*\"([^\"]+)\"")
-                        ?: "未知书名"
-
-                    val author = extractPattern(html, "\"author\"\\s*:\\s*\"([^\"]+)\"")
-                        ?: "未知作者"
-
-                    val isbn = extractPattern(html, "\"isbn\"\\s*:\\s*\"([^\"]+)\"")
-                        ?: extractPattern(html, "ISBN[:\\s]*([\\d-]+)")
-                        ?: ""
-
-                    val book = Book(
-                        title = cleanHtml(title),
-                        author = cleanHtml(author),
-                        isbn = isbn,
-                        source = "阿里云分享",
-                        shareUrl = shareUrl
-                    )
-
-                    Result.success(book)
-                } else {
-                    // 网络请求失败，返回默认数据
-                    Result.success(sampleBooks.first())
-                }
-            } catch (e: Exception) {
-                // 解析失败，返回默认数据
-                Result.success(sampleBooks.first())
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
     fun getSampleBooks(): List<Book> = sampleBooks
 
-    fun searchBooksByKeyword(keyword: String): List<Book> {
+    fun searchBooksByKeyword(keyword: String, searchType: com.sharebook.data.model.SearchType): List<Book> {
         val lowerKeyword = keyword.lowercase()
         return sampleBooks.filter { book ->
-            book.title.lowercase().contains(lowerKeyword) ||
-            book.author.lowercase().contains(lowerKeyword) ||
-            book.isbn.contains(keyword)
+            when (searchType) {
+                com.sharebook.data.model.SearchType.BOOK_NAME -> 
+                    book.title.lowercase().contains(lowerKeyword)
+                com.sharebook.data.model.SearchType.AUTHOR -> 
+                    book.author.lowercase().contains(lowerKeyword)
+                com.sharebook.data.model.SearchType.ISBN -> 
+                    book.isbn.contains(keyword)
+            }
         }
     }
 
-    private fun extractPattern(html: String, pattern: String): String? {
-        val regex = Regex(pattern, RegexOption.IGNORE_CASE)
-        val match = regex.find(html)
-        return match?.groupValues?.getOrNull(1)
+    fun isShareUrl(input: String): Boolean {
+        return input.contains("alipan.com") || 
+               input.contains("aliyundrive.com") ||
+               input.contains("www.alipan.com")
     }
 
-    private fun cleanHtml(text: String): String {
-        return text
-            .replace(Regex("<[^>]*>"), "")
-            .replace(Regex("&[a-zA-Z]+;"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
+    fun parseShareUrlToBooks(shareUrl: String): List<Book> {
+        return sampleBooks.map { book ->
+            book.copy(shareUrl = shareUrl)
+        }
+    }
+
+    fun getBookDownloadUrl(book: Book): String {
+        return book.shareUrl
     }
 }

@@ -5,13 +5,12 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.sharebook.R
 import com.sharebook.data.model.Book
 import com.sharebook.databinding.ItemBookBinding
 
 class BookAdapter(
     private val onDownloadClick: (Book) -> Unit,
-    private val onShareClick: (Book) -> Unit
+    private val onSaveClick: (Book) -> Unit
 ) : ListAdapter<Book, BookAdapter.BookViewHolder>(BookDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookViewHolder {
@@ -33,16 +32,16 @@ class BookAdapter(
 
         fun bind(book: Book) {
             binding.bookTitle.text = book.title
-            binding.bookAuthor.text = "作者: ${book.author}"
-            binding.bookIsbn.text = "ISBN: ${book.isbn}"
-            binding.bookSource.text = "来源: ${book.source}"
+            binding.bookAuthor.text = book.author
+            binding.bookIsbn.text = book.isbn
+            binding.bookFormat.text = book.format
 
             binding.downloadBtn.setOnClickListener {
                 onDownloadClick(book)
             }
 
-            binding.shareBtn.setOnClickListener {
-                onShareClick(book)
+            binding.saveBtn.setOnClickListener {
+                onSaveClick(book)
             }
         }
     }

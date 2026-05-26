@@ -1,12 +1,13 @@
 package com.sharebook
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.sharebook.data.model.Book
@@ -26,8 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fileDownloader: FileDownloader
     private lateinit var cloudTransferHelper: CloudTransferHelper
 
-    private val bookList = mutableListOf<Book>()
-    private val sampleShareUrl = "https://www.alipan.com/s/2bACfCjLCkH"
+    private val STORAGE_PERMISSION_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,10 +36,10 @@ class MainActivity : AppCompatActivity() {
 
         initializeComponents()
         setupRecyclerView()
-        setupSearchInput()
+        setupSearchButton()
         setupSearchTypeChips()
-        
-        // 初始显示示例数据
+
+        checkStoragePermission()
         showSampleBooks()
     }
 
@@ -47,12 +47,15 @@ class MainActivity : AppCompatActivity() {
         aliyunShareParser = AliyunShareParser()
         fileDownloader = FileDownloader(this)
         cloudTransferHelper = CloudTransferHelper(this)
+
+        val downloadDir = fileDownloader.getDownloadDir()
+        binding.downloadPathHint.text = "下载: ${downloadDir.absolutePath}"
     }
 
     private fun setupRecyclerView() {
         bookAdapter = BookAdapter(
             onDownloadClick = { book -> downloadBook(book) },
-            onShareClick = { book -> showTransferOptions(book) }
+            onSaveClick = { book -> saveToCloud(book) }
         )
 
         binding.resultsList.apply {
@@ -62,34 +65,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupSearchInput() {
-        binding.searchInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                if (!s.isNullOrEmpty()) {
-                    val input = s.toString()
-                    if (isShareUrl(input)) {
-                        parseShareUrl(input)
-                    } else {
-                        performSearch(input)
-                    }
-                } else {
-                    showSampleBooks()
-                }
+    private fun setupSearchButton() {
+        binding.searchButton.setOnClickListener {
+            val query = binding.searchInput.text.toString().trim()
+            if (query.isEmpty()) {
+                showSampleBooks()
+                return@setOnClickListener
             }
-        })
-    }
 
-    private fun isShareUrl(input: String): Boolean {
-        return input.contains("alipan.com") || input.contains("aliyundrive.com")
+            performSearch(query)
+        }
     }
 
     private fun setupSearchTypeChips() {
         binding.searchTypeGroup.setOnCheckedStateChangeListener { _, _ ->
-            val currentText = binding.searchInput.text.toString()
-            if (!currentText.isEmpty() && !isShareUrl(currentText)) {
-                performSearch(currentText)
+            val query = binding.searchInput.text.toString().trim()
+            if (query.isNotEmpty() && !aliyunShareParser.isShareUrl(query)) {
+                performSearch(query)
             }
         }
     }
@@ -105,131 +97,117 @@ class MainActivity : AppCompatActivity() {
     private fun showSampleBooks() {
         val books = aliyunShareParser.getSampleBooks()
         updateBookList(books)
+        binding.resultCount.text = "共找到 ${books.size} 本图书"
     }
 
-    private fun parseShareUrl(url: String) {
+    private fun performSearch(query: String) {
         showLoading(true)
 
         lifecycleScope.launch {
-            val result = aliyunShareParser.parseShareUrl(url)
-            showLoading(false)
-            
-            result.onSuccess { book ->
-                updateBookList(listOf(book))
-                Toast.makeText(this@MainActivity, "解析成功！", Toast.LENGTH_SHORT).show()
-            }.onFailure { error ->
-                Toast.makeText(this@MainActivity, "解析失败: ${error.message}", Toast.LENGTH_SHORT).show()
-                // 解析失败时显示示例数据
-                showSampleBooks()
-            }
-        }
-    }
-
-    private fun performSearch(keyword: String) {
-        showLoading(true)
-
-        lifecycleScope.launch {
-            val searchType = getCurrentSearchType()
-            val filteredBooks = filterBooksByType(aliyunShareParser.searchBooksByKeyword(keyword), searchType, keyword)
-            updateBookList(filteredBooks)
-            showLoading(false)
-        }
-    }
-
-    private fun filterBooksByType(books: List<Book>, type: SearchType, keyword: String): List<Book> {
-        val lowerKeyword = keyword.lowercase()
-        return books.filter { book ->
-            when (type) {
-                SearchType.BOOK_NAME -> book.title.lowercase().contains(lowerKeyword)
-                SearchType.AUTHOR -> book.author.lowercase().contains(lowerKeyword)
-                SearchType.ISBN -> book.isbn.contains(keyword)
+            try {
+                if (aliyunShareParser.isShareUrl(query)) {
+                    val books = aliyunShareParser.parseShareUrlToBooks(query)
+                    updateBookList(books)
+                    binding.resultCount.text = "从分享链接获取 ${books.size} 本图书"
+                } else {
+                    val searchType = getCurrentSearchType()
+                    val books = aliyunShareParser.searchBooksByKeyword(query, searchType)
+                    updateBookList(books)
+                    binding.resultCount.text = "共找到 ${books.size} 本图书"
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "搜索出错: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                showLoading(false)
             }
         }
     }
 
     private fun updateBookList(books: List<Book>) {
-        bookList.clear()
-        bookList.addAll(books)
-        bookAdapter.submitList(bookList.toList())
+        bookAdapter.submitList(books)
 
         if (books.isEmpty()) {
             binding.emptyState.visibility = View.VISIBLE
-            binding.emptyState.text = "未找到相关图书"
+            binding.emptyText.text = "未找到相关图书"
+            binding.resultCount.visibility = View.GONE
         } else {
             binding.emptyState.visibility = View.GONE
+            binding.resultCount.visibility = View.VISIBLE
         }
     }
 
     private fun showLoading(show: Boolean) {
-        binding.progressBar.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            binding.loadingView.visibility = View.VISIBLE
+            binding.emptyState.visibility = View.GONE
+            binding.resultsList.visibility = View.GONE
+        } else {
+            binding.loadingView.visibility = View.GONE
+            binding.resultsList.visibility = View.VISIBLE
+        }
     }
 
     private fun downloadBook(book: Book) {
         lifecycleScope.launch {
-            val result = fileDownloader.downloadFile(book.shareUrl, "${book.title}.pdf")
+            if (!checkStoragePermission()) {
+                requestStoragePermission()
+                return@launch
+            }
 
-            result.onSuccess { file ->
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "下载完成: ${file.absolutePath}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    fileDownloader.openFile(file)
-                }
+            val result = fileDownloader.downloadBook(book)
+            
+            result.onSuccess { message ->
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
             }
 
             result.onFailure { error ->
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "下载失败: ${error.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+                Toast.makeText(
+                    this@MainActivity,
+                    "下载失败: ${error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                fileDownloader.openShareUrl(book.shareUrl)
             }
         }
     }
 
-    private fun showTransferOptions(book: Book) {
-        val options = arrayOf("阿里云盘", "115网盘", "百度网盘")
-
-        AlertDialog.Builder(this)
-            .setTitle("选择网盘")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> transferToAliyun(book)
-                    1 -> transferTo115(book)
-                    2 -> transferToBaidu(book)
-                }
-            }
-            .show()
+    private fun saveToCloud(book: Book) {
+        cloudTransferHelper.openAliyunPan(book.shareUrl)
     }
 
-    private fun transferToAliyun(book: Book) {
-        lifecycleScope.launch {
-            val result = cloudTransferHelper.transferToAliyun(book.shareUrl)
-            result.onSuccess { url ->
-                runOnUiThread {
-                    cloudTransferHelper.openUrl(url)
-                }
-            }
+    private fun checkStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            true
+        } else {
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
         }
     }
 
-    private fun transferTo115(book: Book) {
-        lifecycleScope.launch {
-            val result = cloudTransferHelper.transferTo115(book.shareUrl)
-            result.onSuccess { url ->
-                runOnUiThread {
-                    cloudTransferHelper.openUrl(url)
-                }
-            }
+    private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                STORAGE_PERMISSION_CODE
+            )
         }
     }
 
-    private fun transferToBaidu(book: Book) {
-        val baiduUrl = "https://pan.baidu.com"
-        cloudTransferHelper.openUrl(baiduUrl)
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == STORAGE_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "权限已授予", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "需要存储权限才能下载", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
